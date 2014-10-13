@@ -19,35 +19,46 @@ Es recomendable, sobre todo usando Amazon EC2 tener toda la información configu
 
 Este volumen EBS actúa (dentro de ubuntu) como un disco más, por lo tanto lo tendremos cargado dentro de la carpeta “dev” con el nombre que le hallamos dado al crear la instancia en la opción de enlazar volúmenes. Si por lo que sea, no encontramos esa carpeta en el directorio “dev” ejecutaremos la siguiente orden para ver que discos tenemos en el sistema :
 
+```
 [ec2-user ~]$ lsblk
 NAME  MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
 xvdf  202:80   0  100G  0 disk
 xvda1 202:1    0    8G  0 disk /
+```
 
 En este caso “xvda1” representa a “sda1” que es el volumen cargado en el raíz “/” y “xvdf” que representa a “sdf” que es el nombre que le hemos dado al volumen y, como vemos, de momento no está montado.
 Para montarlo, en primer lugar comprobaremos que contiene un sistema de ficheros. Si contiene es que probablemente tenga información alojada y podremos montarlo directamente. Pero si no, antes de montar el volumen deberemos crearle un sistema de ficheros:
+
+```
 [ec2-user ~]$ sudo file -s /dev/xvdf
 /dev/xvdf: data (No contiene un FS)
 /dev/xvda1: Linux rev 1.0 ext4 filesystem data, UUID=17… (Contiene un FS)
-
+```
 
 En el caso de tener que crear el sistema de fichero, haremos lo siguiente (en este caso un sistema “ext4”, pero podemos usar el que sea que necesitemos):
+```
 [ec2-user ~]$ sudo mkfs -t ext4 device_name
+```
 
 Si ya tenemos un sistema de ficheros en el volume, crearemos un directorio que hará las veces de punto de montaje del volumen:
+```
 [ec2-user ~]$ sudo mkdir mount_point
-
-
+```
 
 Y por fin, podemos montar el disco:
+```
 [ec2-user ~]$ sudo mount device_name mount_point
+```
 
 Una vez creado, para no tener que hacer la operación de montaje cada vez que iniciemos la instancia deberemos introducir la orden de montaje en la tabla del sistemas de ficheros en “/etc/fstab”. (OJO!!! Si se introduce algo mal en fstab, el servidor puede no terminar de iniciar aunque en la instancia ponga que está iniciada, en ese caso, deberemos parar la instancia, crear otra instancia auxiliar y enlazarla a esta nueva instancia el volumen raíz de la que ha fallado para, una vez montado el volumen raíz de la instancia fallida en la nueva instancia auxiliar, podamos revertir los cambios en el archivo “fstab”).
 Para añadir esta orden de montaje en “/etc/fstab” añadiremos a dicho archivo la siguiente línea separando cada dato, muy muy muy muy muy importante, por un tabulador.
+
 device_name  mount_point  file_system_type  fs_mntops  fs_freq  fs_passno  
 
 De la siguiente manera se prueba a montar todo lo que tenemos en “fstab” y así podemos comprobar errores y revertir antes de reiniciar la instancia, que no inicie el servidor y tener que hacer el truquito descrito en el “OJO!!!” del párrafo anterior
+```
 [ec2-user ~]$ sudo mount -a
+```
 
 En este momento, es buena idea registrar una imagen de la instancia en el panel de Amazon EC2.
 
@@ -62,83 +73,139 @@ Empezaré describiendo concretamente que necesitamos conseguir. Necesitamos desp
 	Instalar y configurar Postgresql 8.4 :
 	Constatado que la versión de Postgre que necesitamos no es la la versión por defecto, debemos descargarla desde un repositorio que deberemos configurar:
 Creamos el fichero “/etc/apt/sources.list.d/pgdg.list” y añadimos la siguiente linea :
+	```
 	 deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main 
+	 ```
+	 
 Importamos la key del repositorio:
+```
 [ec2-user ~]$ wget --quiet -O -https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
+```
+
 Aparecerá un prompt (>) y escribimos:
+```
 > sudo apt-key add -
+```
+
 Nos dirá “OK” y actualizamos los repositorios
+```
 [ec2-user ~]$ sudo apt-get update
+```
+
 Antes de instalar, por si acaso, añadiremos tambien un repositorio mas pequeño propio de postgre:
+```
 [ec2-user ~]$ sudo add-apt-repository ppa:pitti/postgresql
+```
+
 Volvemos a actualizar los repositories :
+```
 [ec2-user ~]$ sudo apt-get update
+```
+
 Y, por fin, instalamos el postgresql8.4
+```
 [ec2-user ~]$ sudo apt-get install postgresql-8.4
+```
 
 Como hemos aclarado anteriormente, necesitaremos que los archivos susceptibles de perderse se deberán alojar en un volumen EBS. Por ello, deberemos mover el fichero donde se guardan las bases de datos al volumen y enlazarlo desde la carpeta de configuración de la siguiente manera : (NOTA!!! Este mismo proceso lo aplicaremos para la carpeta “webapps” de Tomcat, la “www” de apache o cualquier documente que no se vaya a compartir y queramos conservarlo para lincarlo más adelante )
 •	En primer lugar detendremos el servidor postgre: 
+```
 [ec2-user ~]$ sudo service postgresql stop
+```
 
 •	Despues, crearemos una nueva carpeta en el volumen (montado en /mnt/sdf) y moveremos todo el contenido de la carpeta que actualmente aloja los archivos de la base de datos a la nueva carpeta. 
+```
 [ec2-user ~]$ sudo mkdir /mnt/sdf/pgBD
 [ec2-user ~]$ sudo mv /var/lib/postgresql/8.2/main /mnt/sdf/pgBD
+```
 
 •	Crearemos un enlace simbólico en el directorio de base de datos antiguo para que enlace con el nuevo directorio en el volumen. 
+```
 [ec2-user ~]$ sudo ln –s / mnt/sdf/pgBD/main /var/lib/postgresql/8.2/main
+```
 
 •	Daremos permisos a postgre (usuario postgres) para que acceda al nuevo directorio. 
+```
 [ec2-user ~]$ sudo chown postgres:postgres –R /var/lib/postgresql/8.2/main
+```
 
 •	Por último, iniciamos el servicio de nuevo. 
+```
 [ec2-user ~]$ sudo service postgresql start
+```
 
 
  
 Para añadir bases de datos, usuarios , etc. usamos la aplicación gráfica “pgadmin”, para ello debemos añadir al usuario “postgres” (superusuario de postgresql) una contraseña (en este caso “postgres” tambien) y abrir las conexiones exteriores:
 •	Accedemos a psql con el usuario “postgres” .
+```
 [ec2-user ~]$ sudo –u postgres psql
+```
 
 •	Añadimos la contraseña a dicho usuario y salimos con”\q” 
+```
 Postgres=# ALTER USER postgres PASSWORD 'postgres';
+```
 
 •	Para abrir la conexión, editamos el fichero de configuración “pg_hba.conf” que encontramos en “/etc/postgresql/8.4/main” añadiendo:
+```
 host        all         all         0.0.0.0 0.0.0.0     md5
-•	Y editando también el fichero “postgresql.conf” editando, descomentando o añadiendo según sea necesario la línea: 
-Listen_addresses = ‘*’
-•	Reiniciniciamos el servicio y ya está listo para conectarnos desde el exterior con el “pgadmin”. 
-[ec2-user ~]$ sudo service postgresql restart
+```
 
+•	Y editando también el fichero “postgresql.conf” editando, descomentando o añadiendo según sea necesario la línea: 
+```
+Listen_addresses = ‘*’
+```
+
+•	Reiniciniciamos el servicio y ya está listo para conectarnos desde el exterior con el “pgadmin”. 
+```
+[ec2-user ~]$ sudo service postgresql restart
+```
 
 	
  
 Instalar y configurar Apache2, Tomcat7 y mod_jk
 Instalamos Apache2 :
+```
 [ec2-user ~]$ sudo apt-get install apache2
+```
 
 Despues, instalaremos Java6, en este, caso vamos a instalar la distribución de oracleOracle-JDK6. Para ello primero tenemos que añadir un repositorio que contiga los paquetes necesarios  y actualizar los repositorios:
+```
 [ec2-user ~]$ sudo add-apt-repository ppa:webupd8team/java
 [ec2-user ~]$ sudo apt-get update
+```
 
 Y ya podemos instalar Java6 y podemos comprobar que la versión es correcta:
+```
 [ec2-user ~]$ sudo apt-get install oracle-java6-installer
 [ec2-user ~]$ sudo java -version
+```
 
 
 Una vez tenemos java instalado, podemos instalar Tomcat7 :
+```
 [ec2-user ~]$ sudo apt-get install tomcat7 tomcat7-admin
+```
 
 Si nos dice que no encuentra el JDK, debemos corregir una línea del archivo “/etc/default/tomcat7”:
+```
 #JAVA_HOME=/usr/lib/jvm/openjdk-6-jdk
+```
 POR
+```
 JAVA_HOME=/usr/lib/jvm/java-6-oracle
+```
 
 Comprobamos que tomcat7 inicia :
+```
 [ec2-user ~]$ sudo service tomcat7 start
+```
 
 Por último, debemos instalar mod_jk, que conectará apache2 con tomcat :
+```
 [ec2-user ~]$ sudo apt-get install libapache2-mod-jk
-
+```
 
 En este momento ya tenemos todo instalado y podemos empezar con la configuración. 
 Para ejemplificarlo de una manera clara, voy a exponer un problema:
@@ -147,6 +214,7 @@ Para resolver este problema necestimos primeramente que las dos aplicaciones web
 
 •	Primeramente haremos la parte de apache:
 En primer lugar crearemos dentro de “/var/www” dos carpetas con nombre dom1 y dom2 que contendrán un fichero index.html muy sencillo (solo para mostrar que el servidor distigue los dominios). Estas podría ser:
+```
 <html>
    <head><title>dominio1</title></head>
    <body>Pagina del dominio1!!!</body>
@@ -156,13 +224,18 @@ Y
    <head><title>dominio2</title></head>
    <body>Pagina del dominio2!!!</body>
 </html>
+```
 
  
 Para poder accede a cada página desde su correspondiente dominio deberemos crear un virtualhost por dominio en el fichero “/etc/apache2/sites-available/default” donde nos encontramos en un principio con: 
+```
 <VirtualHost *:80>
    …Configuración por defecto…
 </ VirtualHost >
+```
+
 Los VirtualHost los tenemos que añadir después de la ultima etiqueta VirtualHost poniendo lo siguiente (Es un configuración básica, después se podrá añadir dentro de cada VirtualHost todo lo necesario según el caso) : 
+```
 <VirtualHost *:80>
 DocumentRoot /var/lib/www/dom1
 ServerName www.dominio1.com
@@ -172,29 +245,40 @@ ServerName www.dominio1.com
 DocumentRoot /var/lib/www/dom2
 ServerName www.dominio2.com
 </VirtualHost>
+```
+
 Reiniciamos apache: 
+```
 [ec2-user ~]$ sudo service apache2 start
+```
 
 Y con esto, ya tenemos redirigidos los dominios a nuestras páginas de apache y, por lo tanto, si ponemos www.dominio1.com iremos al index.html de dom1 y si ponemos www.dominio2.com iremos al index.html de dom2
 
 •	Ahora necesitamos hacer algo parecido pero esta vez en Tomcat:
 Igual que en el caso anterior, creamos dos carpeta en (app1 y app2) con dos sencillas aplicaciones compuestas por un “index.jsp” que puede ser como el que sigue : 
+```
 <html>
    <head><title>dominio<%2-1%></title></head>
    <body>Pagina del dominio<%2-1%>!!!</body>
 </html>
+```
 Y
+```
 <html>
    <head><title>dominio<%1+1%></title></head>
    <body>Pagina del dominio<%1+1%>!!!</body>
 </html>
+```
  
 Para poder acceder a cada aplicación desde <su correspondiente dominio>:8080, deberemos crear un host por dominio en el fichero “/var/lib/tomcat7/conf/server.xml” donde nos encontramos casi al final con:
+```
 <Host name="localhost"  appBase="webapps" unpackWARs="true" autoDeploy="true">
 	…Configuracion…
 </Host>
+```
 
 Los Host los tenemos que añadir después de la ultima etiqueta “Host” poniendo lo siguiente (Es un configuración básica, después se podrá añadir dentro de cada Host todo lo necesario según el caso) :
+```
 <Host name="www.dominio1.com" debug="0" appBase="/var/lib/tomcat7/webapps/app1" unpackWARs="true">
 <Alias>www.dominio1.com</Alias>
 <Logger className="org.apache.catalina.logger.FileLogger"
@@ -208,9 +292,12 @@ directory="logs" prefix="virtual_log1." suffix=".log" timestamp="true"/>
 directory="logs" prefix="virtual_log2." suffix=".log" timestamp="true"/>
 <Context path="" docBase="/var/lib/tomcat7/webapps/app2" debug="0" reloadable="true"/>
 </Host>
+```
 
 Reiniciamos tomcat: 
+```
 [ec2-user ~]$ sudo service tomcat7 start
+```
 
 Y con esto, ya tenemos redirigidos los dominios a nuestras aplicaciones de tomcat y, por lo tanto, si ponemos www.dominio1.com:8080 iremos a app1 y si ponemos www.dominio2.com iremos a app2.
 
@@ -219,6 +306,7 @@ Y con esto, ya tenemos redirigidos los dominios a nuestras aplicaciones de tomca
 El módulo mod_jk de apacge, utiliza el protocolo AJP para acceder a las aplicaciones de Tomcat  a través del puerto 8009. Por lo tanto, en primer lugar deberemos descomentar la siguiente línea dentro de “/var/lib/tomcat7/conf/server.xml”:
 <Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
 Lo siguiente, es crearse un archivito de “workers”, éstos, serán los encargados de redirigir a los VirtualHost de apache a tomcat por el protocolo AJP. Para definir esto, crearemos un nuevo archivo llamado “workers.properties” en “/etc/apache2”. El fichero tan solo contendrá una lista de worker y unas definiciones pera cada worker. Exactamente igual que hemos dicho antes, esta configuración también es sencilla y admitirá más opciones para cada worker cuando sea necesario :
+```
 worker.list=dom1, dom2
 
 worker.dom1.type=ajp13
@@ -228,12 +316,17 @@ worker.dom1.port=8009
 worker.dom2.type=ajp13
 worker.dom2.host=localhost
 worker.dom2.port=8009
+```
+
 Es importante asegurarse que en “/etc/apache2/mods-enabled/jk.conf” contiene la ruta correcta al “workers.properties”. Para ello hay que sustituir la línea que empieza por:
 JkWorkersFile ………
 Por:
+```
 JkWorkersFile /etc/apache2/workers.properties
+```
 
 Por último, añadiremos en los VirtualHost de apache unos puntos de montaje para indicar en qué direcciones del dominio hay que llamar al worker concreto y cambiaremos el DocumentRoot a la carpeta donde se encuentre la aplicación de tomcat:
+```
 <VirtualHost *:80>
 DocumentRoot /var/lib/www/dom1
 ServerName www.dominio1.com
@@ -247,7 +340,7 @@ ServerName www.dominio2.com
 
 JkMount /* dom2
 </VirtualHost>
-
+```
  
 Seguridad:
 Tenemos dos maneras de conseguir seguridad a través de SSL (Protocolo https). Podemos ponerla en Tomcat (en el puerto 8445) o podemos ponerla en apache (en el puerto 445). Evidentemente, como nuestro esquema redirige cierto tráfico de apache hacia tomcat, tiene más sentido establecer la seguridad en apache y, por supuesto, cerrar cualquier transmisión en el puerto 8080 para que no se pueda acceder a la aplicación directamente.
@@ -257,22 +350,29 @@ Para empezar vamos a revisar los elementos de seguridad necesarios. Necesitaremo
 •		Archivo con la clave privada desencriptada – El mayor problema que tenemos con la clave privada cifrada es que al pedirnos la contraseña siempre que inicie, ante un reinicio no programado el servicio apache no iniciaría hasta que se le metieran las contraseñas de las clave privadas. Con este archivo no quitamos ese problema.
 
 Una vez quede esto claro, vamos a instalar los módulos necesarios para que apache consiga establecer los protocolos ssl. En realidad apache ya lo trae instalado pero no activado. Por lo tanto lo activamos de la siguiente manera : 
+```
 [ec2-user ~]$ sudo a2enmod ssl
+```
 
 Una vez tenemos localizados los certificados y las claves podemos empezar a configurar los VirtualHost de apache para hacerlos seguros .
 
 Para conseguir conectar a varios VirtualHost con varios certificados de seguridad tendremos que añadir la siguiente línea en “/etc/apache2/ports.conf” justo debajo de “NameVirtualHost *:80”: 
-
+```
 NameVirtualHost *:443
+```
 
 En este momento tenemos un VirtualHost para www.dominio1.com y otro para www.dominio2.com de la siguiente forma dentro del archivo “/etc/apache2/sites-available/default”:
+```
 <VirtualHost *:80>
 DocumentRoot /var/www/dom1
 ServerName www.dominio1.com
 
 JkMount /* dom1
 </VirtualHost>
+```
+
 Asi que, si queremos que ambos VirtualHost tengan seguridad ssl, comentamos estos VirtualHost y añadimos los siguientes entre dos etiquetas, que detectan si se encuentra activo el modulo ssl, justo después del último VirtualHost : 
+```
 <IfModule mod_ssl.c>
 <VirtualHost *:443>
 ServerName www.dominio1.com
@@ -302,11 +402,13 @@ ssl-unclean-shutdown downgrade-1.0 force-response-1.0
 JkMount /* dom2
 </VirtualHost>
 </IfModule>
-
+```
 
 Para clarificar donde van los archivos de certificados y claves:
+```
 	SSLCertificateFile    <ruta_al_archivo_del_certificado>
 	SSLCertificateKeyFile     <ruta_al_archivo_de_la_clave_privade_desencriptada>
+```
 
 
 Nota:
@@ -317,16 +419,21 @@ Variables de entorno en apache --> http://httpd.apache.org/docs/2.2/env.html
 Apache SSL FAQ --> http://httpd.apache.org/docs/2.2/ssl/ssl_faq.html 
 
 En este caso hemos preferido tener todos los VirtualHost en el archivo “default” pero me gustaría aclarar que cada VirtualHost puede ir en su archivo aparte dentro de “/etc/apache2/sites-available” y los seguros pueden ir en el default-ssl dentro del misma carpeta. Lo único que deberemos hacer si separamos en varios archivos es activarlos con la orden ya sean ssl o páginas normales (con esta orden lo que conseguimos es que se enlacen dentro de la carpeta “/etc/apache2/sites-enabled” y que así apache sepa que tiene que cargarlos):
+```
 [ec2-user ~]$ sudo a2ensite nombre_del_archivo
+```
 
 La última configuración es rechazar las peticiones que lleguen por el puerto 8080. Para ello, basta con comentar la siguiente línea en “/var/lib/tomcat7/conf/server.xml”:
+```
 <Connector port="8080" protocol="HTTP/1.1"
 connectionTimeout="20000"
 URIEncoding="UTF-8"
 redirectPort="8443" />
+```
  
 Por ultimo, reiniciamos apache2 y tomcat7 y listo!!! 
+```
 [ec2-user ~]$ sudo service tomcat7 start
 [ec2-user ~]$ sudo service apache2 start
-
+```
 
