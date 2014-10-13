@@ -5,12 +5,12 @@ Configure-ubuntu-server
 
 
 ##Creación y configuración de Servidores Amazon
-1 – Una vez dentro del panel de amazon eremos a la opción de EC2 que, en efecto, son los servidores de amazon.
-2 – Para iniciar un servidor, en realidad hay que lanzar un instancia que se puede configurar de nuevas o lanzar una imagen creada con anterioridad.
+1. Una vez dentro del panel de amazon eremos a la opción de EC2 que, en efecto, son los servidores de amazon.
+2. Para iniciar un servidor, en realidad hay que lanzar un instancia que se puede configurar de nuevas o lanzar una imagen creada con anterioridad.
 Estas instancia mantienen los datos y cambios mientras la instancia esté creada (ya sea parada o en ejecución, no terminada) a excepción, evidentemente, de la información de la RAM.
 Si queremos mantener información que permanezca aunque terminemos una instancia, tenemos dos opciones: 1- Ir creando imágenes sucesivas en la que tendremos el servidor tal cual estaba al hacer la imagen.2-Guardar la información dentro de un volumen EBS (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumes.html) que permanecerá persistente.
-3 – Una vez que hemos configurado los volúmenes a utilizar (uno obligado donde correra la instancia y los demás auxiliares que, si no se dice lo contrario, no se borraran al terminar con la instancia), los grupos de seguridad y, muy importante, el par de acceso que forma una clave publica (.pem) que deberemos enviar para conectarnos mediante SSH; la instacia se lanzará. Desde ese momento podremos conectarnos a ella por medio del protocolo ssh, la dirección “public DNS” que leemos en la información de la instancia (esta dirección cambiará cada vez que paremos la instancia asi que más adelante explicaré como agregarle una IP estática desde Amazon) y el archivo .pem (aclarar que en Ubuntu el usuario al que deberemos conectarnos será “ubuntu” ya que no permite acceder directamente al root, por lo tanto, “sudo” delante de todos los mandatos  o “sudo su”).
-4 – Ya estamos listos para configurar el servidor.
+3. Una vez que hemos configurado los volúmenes a utilizar (uno obligado donde correra la instancia y los demás auxiliares que, si no se dice lo contrario, no se borraran al terminar con la instancia), los grupos de seguridad y, muy importante, el par de acceso que forma una clave publica (.pem) que deberemos enviar para conectarnos mediante SSH; la instacia se lanzará. Desde ese momento podremos conectarnos a ella por medio del protocolo ssh, la dirección “public DNS” que leemos en la información de la instancia (esta dirección cambiará cada vez que paremos la instancia asi que más adelante explicaré como agregarle una IP estática desde Amazon) y el archivo .pem (aclarar que en Ubuntu el usuario al que deberemos conectarnos será “ubuntu” ya que no permite acceder directamente al root, por lo tanto, “sudo” delante de todos los mandatos  o “sudo su”).
+4. Ya estamos listos para configurar el servidor.
 
 
 ##Configuración servidor Ubuntu 12.04
@@ -306,7 +306,9 @@ Y con esto, ya tenemos redirigidos los dominios a nuestras aplicaciones de tomca
 
 •	Conexión de Apache2 a Tomcat7 a través de mod_jk:
 El módulo mod_jk de apacge, utiliza el protocolo AJP para acceder a las aplicaciones de Tomcat  a través del puerto 8009. Por lo tanto, en primer lugar deberemos descomentar la siguiente línea dentro de “/var/lib/tomcat7/conf/server.xml”:
+```
 <Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
+```
 Lo siguiente, es crearse un archivito de “workers”, éstos, serán los encargados de redirigir a los VirtualHost de apache a tomcat por el protocolo AJP. Para definir esto, crearemos un nuevo archivo llamado “workers.properties” en “/etc/apache2”. El fichero tan solo contendrá una lista de worker y unas definiciones pera cada worker. Exactamente igual que hemos dicho antes, esta configuración también es sencilla y admitirá más opciones para cada worker cuando sea necesario :
 ```
 worker.list=dom1, dom2
@@ -347,9 +349,9 @@ JkMount /* dom2
 Seguridad:
 Tenemos dos maneras de conseguir seguridad a través de SSL (Protocolo https). Podemos ponerla en Tomcat (en el puerto 8445) o podemos ponerla en apache (en el puerto 445). Evidentemente, como nuestro esquema redirige cierto tráfico de apache hacia tomcat, tiene más sentido establecer la seguridad en apache y, por supuesto, cerrar cualquier transmisión en el puerto 8080 para que no se pueda acceder a la aplicación directamente.
 Para empezar vamos a revisar los elementos de seguridad necesarios. Necesitaremos:
-•	Archivo del Certificado de seguridad – Archivo de extensión .crt con el certificado de seguridad del sitio creado por una agencia certificadora (si la aplicación es para uso interno valdría con un certificado creado por nosotros con openssl por ejemplo)
-•		Archivo con la clave privada del certificado – Archivo que contiene la clave privada para desencriptar las transmisiones encriptadas con la clave pública. Esta clave viene a su vez cifrada (con RSA) con una contraseña dada por el que haya creado el certificado y por lo tanto al iniciar apache nos pedirá que le demos dicha contraseña. 
-•		Archivo con la clave privada desencriptada – El mayor problema que tenemos con la clave privada cifrada es que al pedirnos la contraseña siempre que inicie, ante un reinicio no programado el servicio apache no iniciaría hasta que se le metieran las contraseñas de las clave privadas. Con este archivo no quitamos ese problema.
+	*Archivo del Certificado de seguridad – Archivo de extensión .crt con el certificado de seguridad del sitio creado por una agencia certificadora (si la aplicación es para uso interno valdría con un certificado creado por nosotros con openssl por ejemplo)
+	*Archivo con la clave privada del certificado – Archivo que contiene la clave privada para desencriptar las transmisiones encriptadas con la clave pública. Esta clave viene a su vez cifrada (con RSA) con una contraseña dada por el que haya creado el certificado y por lo tanto al iniciar apache nos pedirá que le demos dicha contraseña. 
+	*Archivo con la clave privada desencriptada – El mayor problema que tenemos con la clave privada cifrada es que al pedirnos la contraseña siempre que inicie, ante un reinicio no programado el servicio apache no iniciaría hasta que se le metieran las contraseñas de las clave privadas. Con este archivo no quitamos ese problema.
 
 Una vez quede esto claro, vamos a instalar los módulos necesarios para que apache consiga establecer los protocolos ssl. En realidad apache ya lo trae instalado pero no activado. Por lo tanto lo activamos de la siguiente manera : 
 ```
@@ -416,9 +418,9 @@ Para clarificar donde van los archivos de certificados y claves:
 Nota:
 La directiva  “BrowserMatch ".*MSIE [2-5]" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0” (el character \ sirva para separar una linea en varias) está adaptada de la directiva estándar “BrowserMatch ".*MSIE.*" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0”. Esta directiva solventa ciertos problemas que da Internet Explorer al conectarse a un apache con ssl. Lo he correguido por que, actualmente, estos problemas solo se darán en las versiones anteriores a InternetExplorer6 y de hecho puede interferir en el correcto funcionamiento de las versiones posteriores.
 La directiva “BrowserMatch” al igual que “SetEnvIf” sirven para establecer ciertas variables de entorno cuando se el browser (en el caso de BrowserMatch) o el dato que se configure (en el caso de SetEnvIf) casen con la expresión regular que viene después.
-Directivas SetEnvIf, BrowserMatch --> http://httpd.apache.org/docs/2.2/mod/mod_setenvif.html
-Variables de entorno en apache --> http://httpd.apache.org/docs/2.2/env.html
-Apache SSL FAQ --> http://httpd.apache.org/docs/2.2/ssl/ssl_faq.html 
+*Directivas SetEnvIf, BrowserMatch --> http://httpd.apache.org/docs/2.2/mod/mod_setenvif.html
+*Variables de entorno en apache --> http://httpd.apache.org/docs/2.2/env.html
+*Apache SSL FAQ --> http://httpd.apache.org/docs/2.2/ssl/ssl_faq.html 
 
 En este caso hemos preferido tener todos los VirtualHost en el archivo “default” pero me gustaría aclarar que cada VirtualHost puede ir en su archivo aparte dentro de “/etc/apache2/sites-available” y los seguros pueden ir en el default-ssl dentro del misma carpeta. Lo único que deberemos hacer si separamos en varios archivos es activarlos con la orden ya sean ssl o páginas normales (con esta orden lo que conseguimos es que se enlacen dentro de la carpeta “/etc/apache2/sites-enabled” y que así apache sepa que tiene que cargarlos):
 ```
