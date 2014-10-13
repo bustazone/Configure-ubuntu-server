@@ -1,10 +1,10 @@
 Configure-ubuntu-server
 =======================
 
-Configurar servidor ubuntu 12.04 (apache, tomcat, mod-jk)
+#Configurar servidor ubuntu 12.04 (apache, tomcat, mod-jk)
 
 
-Creación y configuración de Servidores Amazon
+##Creación y configuración de Servidores Amazon
 1 – Una vez dentro del panel de amazon eremos a la opción de EC2 que, en efecto, son los servidores de amazon.
 2 – Para iniciar un servidor, en realidad hay que lanzar un instancia que se puede configurar de nuevas o lanzar una imagen creada con anterioridad.
 Estas instancia mantienen los datos y cambios mientras la instancia esté creada (ya sea parada o en ejecución, no terminada) a excepción, evidentemente, de la información de la RAM.
@@ -12,7 +12,8 @@ Si queremos mantener información que permanezca aunque terminemos una instancia
 3 – Una vez que hemos configurado los volúmenes a utilizar (uno obligado donde correra la instancia y los demás auxiliares que, si no se dice lo contrario, no se borraran al terminar con la instancia), los grupos de seguridad y, muy importante, el par de acceso que forma una clave publica (.pem) que deberemos enviar para conectarnos mediante SSH; la instacia se lanzará. Desde ese momento podremos conectarnos a ella por medio del protocolo ssh, la dirección “public DNS” que leemos en la información de la instancia (esta dirección cambiará cada vez que paremos la instancia asi que más adelante explicaré como agregarle una IP estática desde Amazon) y el archivo .pem (aclarar que en Ubuntu el usuario al que deberemos conectarnos será “ubuntu” ya que no permite acceder directamente al root, por lo tanto, “sudo” delante de todos los mandatos  o “sudo su”).
 4 – Ya estamos listos para configurar el servidor.
 
-Configuración servidor Ubuntu 12.04
+
+##Configuración servidor Ubuntu 12.04
 
 Montar volúmenes:
 Es recomendable, sobre todo usando Amazon EC2 tener toda la información configurable dentro de un volumen EBS que no perdamos aunque terminemos con la instancia sin tener una imagen creada. Esto es útil por ejemplo, al crear varias intancias basadas en la misma imagen (que contendrá las aplicaciones intaladas y demás configuración común) con distintas configuraciones concretas para las aplicaciones que tengamos (Lo haremos, como veremos, enlazando mediante “soft links” los ficheros de configuración presentes en la imagen base a los archivos de configuración reales que almacenaremos en el volumen).
