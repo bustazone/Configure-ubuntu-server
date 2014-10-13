@@ -418,9 +418,10 @@ Para clarificar donde van los archivos de certificados y claves:
 Nota:
 La directiva  “BrowserMatch ".*MSIE [2-5]" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0” (el character \ sirva para separar una linea en varias) está adaptada de la directiva estándar “BrowserMatch ".*MSIE.*" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0”. Esta directiva solventa ciertos problemas que da Internet Explorer al conectarse a un apache con ssl. Lo he correguido por que, actualmente, estos problemas solo se darán en las versiones anteriores a InternetExplorer6 y de hecho puede interferir en el correcto funcionamiento de las versiones posteriores.
 La directiva “BrowserMatch” al igual que “SetEnvIf” sirven para establecer ciertas variables de entorno cuando se el browser (en el caso de BrowserMatch) o el dato que se configure (en el caso de SetEnvIf) casen con la expresión regular que viene después.
-*Directivas SetEnvIf, BrowserMatch --> http://httpd.apache.org/docs/2.2/mod/mod_setenvif.html
-*Variables de entorno en apache --> http://httpd.apache.org/docs/2.2/env.html
-*Apache SSL FAQ --> http://httpd.apache.org/docs/2.2/ssl/ssl_faq.html 
+
+* Directivas SetEnvIf, BrowserMatch --> http://httpd.apache.org/docs/2.2/mod/mod_setenvif.html
+* Variables de entorno en apache --> http://httpd.apache.org/docs/2.2/env.html
+* Apache SSL FAQ --> http://httpd.apache.org/docs/2.2/ssl/ssl_faq.html 
 
 En este caso hemos preferido tener todos los VirtualHost en el archivo “default” pero me gustaría aclarar que cada VirtualHost puede ir en su archivo aparte dentro de “/etc/apache2/sites-available” y los seguros pueden ir en el default-ssl dentro del misma carpeta. Lo único que deberemos hacer si separamos en varios archivos es activarlos con la orden ya sean ssl o páginas normales (con esta orden lo que conseguimos es que se enlacen dentro de la carpeta “/etc/apache2/sites-enabled” y que así apache sepa que tiene que cargarlos):
 ```
