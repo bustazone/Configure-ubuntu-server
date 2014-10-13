@@ -372,9 +372,9 @@ Tenemos dos maneras de conseguir seguridad a través de SSL (Protocolo https). P
 
 Para empezar vamos a revisar los elementos de seguridad necesarios. Necesitaremos:
 
-	* Archivo del Certificado de seguridad – Archivo de extensión .crt con el certificado de seguridad del sitio creado por una agencia certificadora (si la aplicación es para uso interno valdría con un certificado creado por nosotros con openssl por ejemplo)
-	* Archivo con la clave privada del certificado – Archivo que contiene la clave privada para desencriptar las transmisiones encriptadas con la clave pública. Esta clave viene a su vez cifrada (con RSA) con una contraseña dada por el que haya creado el certificado y por lo tanto al iniciar apache nos pedirá que le demos dicha contraseña. 
-	* Archivo con la clave privada desencriptada – El mayor problema que tenemos con la clave privada cifrada es que al pedirnos la contraseña siempre que inicie, ante un reinicio no programado el servicio apache no iniciaría hasta que se le metieran las contraseñas de las clave privadas. Con este archivo no quitamos ese problema.
+* Archivo del Certificado de seguridad – Archivo de extensión .crt con el certificado de seguridad del sitio creado por una agencia certificadora (si la aplicación es para uso interno valdría con un certificado creado por nosotros con openssl por ejemplo)
+* Archivo con la clave privada del certificado – Archivo que contiene la clave privada para desencriptar las transmisiones encriptadas con la clave pública. Esta clave viene a su vez cifrada (con RSA) con una contraseña dada por el que haya creado el certificado y por lo tanto al iniciar apache nos pedirá que le demos dicha contraseña. 
+* Archivo con la clave privada desencriptada – El mayor problema que tenemos con la clave privada cifrada es que al pedirnos la contraseña siempre que inicie, ante un reinicio no programado el servicio apache no iniciaría hasta que se le metieran las contraseñas de las clave privadas. Con este archivo no quitamos ese problema.
 
 Una vez quede esto claro, vamos a instalar los módulos necesarios para que apache consiga establecer los protocolos ssl. En realidad apache ya lo trae instalado pero no activado. Por lo tanto lo activamos de la siguiente manera : 
 ```
