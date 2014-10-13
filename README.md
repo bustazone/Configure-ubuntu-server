@@ -28,6 +28,7 @@ xvda1 202:1    0    8G  0 disk /
 ```
 
 En este caso “xvda1” representa a “sda1” que es el volumen cargado en el raíz “/” y “xvdf” que representa a “sdf” que es el nombre que le hemos dado al volumen y, como vemos, de momento no está montado.
+
 Para montarlo, en primer lugar comprobaremos que contiene un sistema de ficheros. Si contiene es que probablemente tenga información alojada y podremos montarlo directamente. Pero si no, antes de montar el volumen deberemos crearle un sistema de ficheros:
 
 ```
@@ -52,6 +53,7 @@ Y por fin, podemos montar el disco:
 ```
 
 Una vez creado, para no tener que hacer la operación de montaje cada vez que iniciemos la instancia deberemos introducir la orden de montaje en la tabla del sistemas de ficheros en “/etc/fstab”. (OJO!!! Si se introduce algo mal en fstab, el servidor puede no terminar de iniciar aunque en la instancia ponga que está iniciada, en ese caso, deberemos parar la instancia, crear otra instancia auxiliar y enlazarla a esta nueva instancia el volumen raíz de la que ha fallado para, una vez montado el volumen raíz de la instancia fallida en la nueva instancia auxiliar, podamos revertir los cambios en el archivo “fstab”).
+
 Para añadir esta orden de montaje en “/etc/fstab” añadiremos a dicho archivo la siguiente línea separando cada dato, muy muy muy muy muy importante, por un tabulador.
 
 **device_name  mount_point  file_system_type  fs_mntops  fs_freq  fs_passno**  
@@ -64,15 +66,21 @@ De la siguiente manera se prueba a montar todo lo que tenemos en “fstab” y a
 En este momento, es buena idea registrar una imagen de la instancia en el panel de Amazon EC2.
 
 Enlazar a la instancia una IP fija:
+
 Amazon, entre sus servicios, ofrece la posibilidad de enlazar IPs fijas a las instancias lanzadas. De esta manera, aunque paremos o reiniciemos la instancia, podremos acceder (tanto via web como por ssh) a el servidor que se corre dentro de la instancia con uns simple IP fija. 
+
 Este servicio se llama “Elastic IPs” y crear una es tan sencillo como crearla desde su pestaña en el panel de EC2 y enlazarla a la instancia que queramos.
 
 
  
 Configurar servidor con postgresql, apache, tomcat, mod_jk,  ssl (en apache) :
+
 Empezaré describiendo concretamente que necesitamos conseguir. Necesitamos desplegar una serie de aplicaciones que deben correr sobre tomcat pero que sean accesible desde apache para evitar poner el puerto (:8080) en la url. A parte necesitamos que consulten datos a una base de datos postgree. Y por último, debemos implementar seguridad SSL en apache para conseguir un acceso seguro a las aplicaciones.
+
 	Instalar y configurar Postgresql 8.4 :
+	
 	Constatado que la versión de Postgre que necesitamos no es la la versión por defecto, debemos descargarla desde un repositorio que deberemos configurar:
+	
 Creamos el fichero “/etc/apt/sources.list.d/pgdg.list” y añadimos la siguiente linea :
 	```
 	 deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main 
@@ -108,7 +116,10 @@ Y, por fin, instalamos el postgresql8.4
 [ec2-user ~]$ sudo apt-get install postgresql-8.4
 ```
 
-Como hemos aclarado anteriormente, necesitaremos que los archivos susceptibles de perderse se deberán alojar en un volumen EBS. Por ello, deberemos mover el fichero donde se guardan las bases de datos al volumen y enlazarlo desde la carpeta de configuración de la siguiente manera : (NOTA!!! Este mismo proceso lo aplicaremos para la carpeta “webapps” de Tomcat, la “www” de apache o cualquier documente que no se vaya a compartir y queramos conservarlo para lincarlo más adelante )
+Como hemos aclarado anteriormente, necesitaremos que los archivos susceptibles de perderse se deberán alojar en un volumen EBS.
+
+Por ello, deberemos mover el fichero donde se guardan las bases de datos al volumen y enlazarlo desde la carpeta de configuración de la siguiente manera : (NOTA!!! Este mismo proceso lo aplicaremos para la carpeta “webapps” de Tomcat, la “www” de apache o cualquier documente que no se vaya a compartir y queramos conservarlo para lincarlo más adelante )
+
 •	En primer lugar detendremos el servidor postgre: 
 ```
 [ec2-user ~]$ sudo service postgresql stop
@@ -138,6 +149,7 @@ Como hemos aclarado anteriormente, necesitaremos que los archivos susceptibles d
 
  
 Para añadir bases de datos, usuarios , etc. usamos la aplicación gráfica “pgadmin”, para ello debemos añadir al usuario “postgres” (superusuario de postgresql) una contraseña (en este caso “postgres” tambien) y abrir las conexiones exteriores:
+
 •	Accedemos a psql con el usuario “postgres” .
 ```
 [ec2-user ~]$ sudo –u postgres psql
@@ -211,10 +223,12 @@ Por último, debemos instalar mod_jk, que conectará apache2 con tomcat :
 
 En este momento ya tenemos todo instalado y podemos empezar con la configuración. 
 Para ejemplificarlo de una manera clara, voy a exponer un problema:
-“Tenemos dos aplicaciones web independientes que corren en tomcat (app1 y app2), además disponemos de dos dominios o subdominios (www.dominio1.com y www.dominio2.com). Necesitamos que se pueda acceder a estas aplicaciones (a app1 mediante www.dominio1.com y a app2 mediante www.dominio2.com) por la conexión del puerto 80 para no usar el puerto 8080 o donde esté ejecutando tomcat  en la url“
+“Tenemos dos aplicaciones web independientes que corren en tomcat (app1 y app2), además disponemos de dos dominios o subdominios (www.dominio1.com y www.dominio2.com). Necesitamos que se pueda acceder a estas aplicaciones (a app1 mediante www.dominio1.com y a app2 mediante www.dominio2.com) por la conexión del puerto 80 para no usar el puerto 8080 o donde esté ejecutando tomcat en la url sin puerto.
+
 Para resolver este problema necestimos primeramente que las dos aplicaciones web ejecuten correctamente cada una en su dominio pero con el 8080 en la url y, a parte, que con los dos dominios salga una página servida por apache.
 
 •	Primeramente haremos la parte de apache:
+
 En primer lugar crearemos dentro de “/var/www” dos carpetas con nombre dom1 y dom2 que contendrán un fichero index.html muy sencillo (solo para mostrar que el servidor distigue los dominios). Estas podría ser:
 ```
 <html>
@@ -257,6 +271,7 @@ Reiniciamos apache:
 Y con esto, ya tenemos redirigidos los dominios a nuestras páginas de apache y, por lo tanto, si ponemos www.dominio1.com iremos al index.html de dom1 y si ponemos www.dominio2.com iremos al index.html de dom2
 
 •	Ahora necesitamos hacer algo parecido pero esta vez en Tomcat:
+
 Igual que en el caso anterior, creamos dos carpeta en (app1 y app2) con dos sencillas aplicaciones compuestas por un “index.jsp” que puede ser como el que sigue : 
 ```
 <html>
@@ -305,6 +320,8 @@ Y con esto, ya tenemos redirigidos los dominios a nuestras aplicaciones de tomca
 
 
 •	Conexión de Apache2 a Tomcat7 a través de mod_jk:
+
+
 El módulo mod_jk de apacge, utiliza el protocolo AJP para acceder a las aplicaciones de Tomcat  a través del puerto 8009. Por lo tanto, en primer lugar deberemos descomentar la siguiente línea dentro de “/var/lib/tomcat7/conf/server.xml”:
 ```
 <Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
@@ -323,13 +340,17 @@ worker.dom2.port=8009
 ```
 
 Es importante asegurarse que en “/etc/apache2/mods-enabled/jk.conf” contiene la ruta correcta al “workers.properties”. Para ello hay que sustituir la línea que empieza por:
+
 JkWorkersFile ………
+
 Por:
+
 ```
 JkWorkersFile /etc/apache2/workers.properties
 ```
 
 Por último, añadiremos en los VirtualHost de apache unos puntos de montaje para indicar en qué direcciones del dominio hay que llamar al worker concreto y cambiaremos el DocumentRoot a la carpeta donde se encuentre la aplicación de tomcat:
+
 ```
 <VirtualHost *:80>
 DocumentRoot /var/lib/www/dom1
@@ -348,17 +369,19 @@ JkMount /* dom2
  
 Seguridad:
 Tenemos dos maneras de conseguir seguridad a través de SSL (Protocolo https). Podemos ponerla en Tomcat (en el puerto 8445) o podemos ponerla en apache (en el puerto 445). Evidentemente, como nuestro esquema redirige cierto tráfico de apache hacia tomcat, tiene más sentido establecer la seguridad en apache y, por supuesto, cerrar cualquier transmisión en el puerto 8080 para que no se pueda acceder a la aplicación directamente.
+
 Para empezar vamos a revisar los elementos de seguridad necesarios. Necesitaremos:
-	*Archivo del Certificado de seguridad – Archivo de extensión .crt con el certificado de seguridad del sitio creado por una agencia certificadora (si la aplicación es para uso interno valdría con un certificado creado por nosotros con openssl por ejemplo)
-	*Archivo con la clave privada del certificado – Archivo que contiene la clave privada para desencriptar las transmisiones encriptadas con la clave pública. Esta clave viene a su vez cifrada (con RSA) con una contraseña dada por el que haya creado el certificado y por lo tanto al iniciar apache nos pedirá que le demos dicha contraseña. 
-	*Archivo con la clave privada desencriptada – El mayor problema que tenemos con la clave privada cifrada es que al pedirnos la contraseña siempre que inicie, ante un reinicio no programado el servicio apache no iniciaría hasta que se le metieran las contraseñas de las clave privadas. Con este archivo no quitamos ese problema.
+
+	* Archivo del Certificado de seguridad – Archivo de extensión .crt con el certificado de seguridad del sitio creado por una agencia certificadora (si la aplicación es para uso interno valdría con un certificado creado por nosotros con openssl por ejemplo)
+	* Archivo con la clave privada del certificado – Archivo que contiene la clave privada para desencriptar las transmisiones encriptadas con la clave pública. Esta clave viene a su vez cifrada (con RSA) con una contraseña dada por el que haya creado el certificado y por lo tanto al iniciar apache nos pedirá que le demos dicha contraseña. 
+	* Archivo con la clave privada desencriptada – El mayor problema que tenemos con la clave privada cifrada es que al pedirnos la contraseña siempre que inicie, ante un reinicio no programado el servicio apache no iniciaría hasta que se le metieran las contraseñas de las clave privadas. Con este archivo no quitamos ese problema.
 
 Una vez quede esto claro, vamos a instalar los módulos necesarios para que apache consiga establecer los protocolos ssl. En realidad apache ya lo trae instalado pero no activado. Por lo tanto lo activamos de la siguiente manera : 
 ```
 [ec2-user ~]$ sudo a2enmod ssl
 ```
 
-Una vez tenemos localizados los certificados y las claves podemos empezar a configurar los VirtualHost de apache para hacerlos seguros .
+Una vez tenemos localizados los certificados y las claves podemos empezar a configurar los VirtualHost de apache para hacerlos seguros.
 
 Para conseguir conectar a varios VirtualHost con varios certificados de seguridad tendremos que añadir la siguiente línea en “/etc/apache2/ports.conf” justo debajo de “NameVirtualHost *:80”: 
 ```
@@ -417,6 +440,7 @@ Para clarificar donde van los archivos de certificados y claves:
 
 Nota:
 La directiva  “BrowserMatch ".*MSIE [2-5]" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0” (el character \ sirva para separar una linea en varias) está adaptada de la directiva estándar “BrowserMatch ".*MSIE.*" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0”. Esta directiva solventa ciertos problemas que da Internet Explorer al conectarse a un apache con ssl. Lo he correguido por que, actualmente, estos problemas solo se darán en las versiones anteriores a InternetExplorer6 y de hecho puede interferir en el correcto funcionamiento de las versiones posteriores.
+
 La directiva “BrowserMatch” al igual que “SetEnvIf” sirven para establecer ciertas variables de entorno cuando se el browser (en el caso de BrowserMatch) o el dato que se configure (en el caso de SetEnvIf) casen con la expresión regular que viene después.
 
 * Directivas SetEnvIf, BrowserMatch --> http://httpd.apache.org/docs/2.2/mod/mod_setenvif.html
