@@ -54,7 +54,7 @@ Y por fin, podemos montar el disco:
 Una vez creado, para no tener que hacer la operación de montaje cada vez que iniciemos la instancia deberemos introducir la orden de montaje en la tabla del sistemas de ficheros en “/etc/fstab”. (OJO!!! Si se introduce algo mal en fstab, el servidor puede no terminar de iniciar aunque en la instancia ponga que está iniciada, en ese caso, deberemos parar la instancia, crear otra instancia auxiliar y enlazarla a esta nueva instancia el volumen raíz de la que ha fallado para, una vez montado el volumen raíz de la instancia fallida en la nueva instancia auxiliar, podamos revertir los cambios en el archivo “fstab”).
 Para añadir esta orden de montaje en “/etc/fstab” añadiremos a dicho archivo la siguiente línea separando cada dato, muy muy muy muy muy importante, por un tabulador.
 
-device_name  mount_point  file_system_type  fs_mntops  fs_freq  fs_passno  
+**device_name  mount_point  file_system_type  fs_mntops  fs_freq  fs_passno**  
 
 De la siguiente manera se prueba a montar todo lo que tenemos en “fstab” y así podemos comprobar errores y revertir antes de reiniciar la instancia, que no inicie el servidor y tener que hacer el truquito descrito en el “OJO!!!” del párrafo anterior
 ```
@@ -165,7 +165,8 @@ Listen_addresses = ‘*’
 
 	
  
-Instalar y configurar Apache2, Tomcat7 y mod_jk
+##Instalar y configurar Apache2, Tomcat7 y mod_jk
+
 Instalamos Apache2 :
 ```
 [ec2-user ~]$ sudo apt-get install apache2
